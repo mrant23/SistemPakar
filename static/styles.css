@@ -1,0 +1,42 @@
+/* index.html */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+body {
+    font-family: 'Poppins', sans-serif;
+}
+
+.nav-link {
+    position: relative;
+}
+
+.nav-link::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: 0;
+    left: 50%;
+    background-color: white;
+    transition: all 0.3s ease-in-out;
+    transform: translateX(-50%);
+}
+
+.nav-link:hover::after {
+    width: 100%;
+}
+
+/* Mobile menu animation */
+.mobile-menu {
+    transition: all 0.3s ease-in-out;
+    transform-origin: top;
+}
+
+.mobile-menu.hidden {
+    transform: scaleY(0);
+    opacity: 0;
+}
+
+.mobile-menu.show {
+    transform: scaleY(1);
+    opacity: 1;
+}

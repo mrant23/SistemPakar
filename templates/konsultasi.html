@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konsultasi Limbah - EcoWaste Expert</title>
+    {% if include_meta %}
+    <meta name="answer" content="{{ answer }}">
+    {% endif %}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            overflow-x: hidden;
+        }
+        .chat-container {
+            height: calc(100vh - 100px);
+            display: flex;
+            flex-direction: column;
+        }
+        .messages-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            padding: 1rem;
+        }
+        .message {
+            max-width: 70%;
+        }
+        .input-container {
+            position: sticky;
+            bottom: 0;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            padding: 1rem;
+            margin-top: auto;
+        }
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            width: 300px;
+            background: white;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 40;
+            overflow-y: auto;
+            padding-top: 64px;
+        }
+        .sidebar.show {
+            transform: translateX(0);
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 30;
+        }
+        .overlay.show {
+            display: block;
+        }
+        .toggle-button {
+            position: fixed;
+            left: 20px;
+            bottom: 20px;
+            z-index: 50;
+            width: 50px;
+            height: 50px;
+            border-radius: 25px;
+            background-color: #059669;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .toggle-button:hover {
+            background-color: #047857;
+            transform: scale(1.1);
+        }
+        .toggle-button i {
+            font-size: 1.5rem;
+            transition: transform 0.3s ease;
+        }
+        .toggle-button.active i {
+            transform: rotate(180deg);
+        }
+
+        @media (min-width: 768px) {
+            .sidebar {
+                position: relative;
+                transform: none;
+                top: 0;
+                height: calc(100vh - 64px);
+                width: 25%;
+                padding-top: 0;
+            }
+            .sidebar.hidden {
+                display: none;
+            }
+            .main-content {
+                transition: margin-left 0.3s ease-in-out;
+                margin-left: 0;
+            }
+            .main-content.expanded {
+                margin-left: 0;
+            }
+            .overlay {
+                display: none !important;
+            }
+        }
+        .message-bubble {
+            border-radius: 1rem;
+            padding: 1rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+        }
+        .user-message {
+            background-color: #f3f4f6;
+            margin-left: auto;
+        }
+        .bot-message {
+            background-color: #059669;
+            color: white;
+        }
+        .typing-indicator {
+            display: inline-flex;
+            align-items: center;
+            margin: 0 0.5rem;
+        }
+        .typing-indicator span {
+            height: 8px;
+            width: 8px;
+            margin: 0 1px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-6px); }
+        }
+
+        @media (max-width: 767px) {
+            .chat-container {
+                height: calc(100vh - 80px);
+                margin: -1rem;
+            }
+            .input-container {
+                padding: 0.75rem;
+            }
+            .message {
+                max-width: 85%;
+            }
+            .messages-container {
+                padding: 0.75rem;
+            }
+        }
+
+        /*  navbar  */
+        .nav-link {
+            position: relative;
+        }
+        
+        .nav-link.active {
+            color: #d1fae5;
+            border-bottom: 2px solid #d1fae5;
+            padding-bottom: 4px;
+        }
+       
+
+        .mobile-menu {
+            transition: all 0.3s ease-in-out;
+            transform-origin: top;
+        }
+
+        .mobile-menu.hidden {
+            transform: scaleY(0);
+            opacity: 0;
+        }
+
+        .mobile-menu.show {
+            transform: scaleY(1);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!--  Navbar -->
+    <nav class="bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg fixed w-full z-50 glass-effect">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center h-20">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-leaf text-3xl text-green-300"></i>
+                    <span class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-200 to-white">
+                        EcoWaste Expert
+                    </span>
+                </div>
+               
+                <!-- Desktop Menu -->
+                <div class="hidden md:flex space-x-8">
+                    <a href="/" class="nav-link px-4 py-2 hover:text-green-200 transition-all duration-300 flex items-center space-x-2 hover:bg-green-600 rounded-lg">
+                        <i class="fas fa-home"></i>
+                        <span>Beranda</span>
+                    </a>
+                    <a href="/konsultasi" class="nav-link px-4 py-2 hover:text-green-200 transition-all duration-300 flex items-center space-x-2 hover:bg-green-600 rounded-lg">
+                        <i class="fas fa-comments"></i>
+                        <span>Konsultasi</span>
+                    </a>
+                    <a href="/#petunjuk" class="nav-link px-4 py-2 hover:text-green-200 transition-all duration-300 flex items-center space-x-2 hover:bg-green-600 rounded-lg">
+                        <i class="fas fa-book"></i>
+                        <span>Petunjuk</span>
+                    </a>
+                    <a href="/#tentang" class="nav-link px-4 py-2 hover:text-green-200 transition-all duration-300 flex items-center space-x-2 hover:bg-green-600 rounded-lg">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Tentang</span>
+                    </a>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <button id="mobile-menu-button" class="md:hidden flex items-center p-2 rounded-lg hover:bg-green-600 transition-colors duration-300">
+                    <i class="fas fa-bars text-2xl"></i>
+                </button>
+            </div>
+
+            <!-- Mobile Menu -->
+            <div id="mobile-menu" class="hidden md:hidden pb-4 rounded-lg slide-in">
+                <a href="/" class="block px-4 py-3 hover:bg-green-600 rounded-lg transition-all duration-300 mb-2 flex items-center space-x-2">
+                    <i class="fas fa-home"></i>
+                    <span>Beranda</span>
+                </a>
+                <a href="/#konsultasi" class="block px-4 py-3 hover:bg-green-600 rounded-lg transition-all duration-300 mb-2 flex items-center space-x-2">
+                    <i class="fas fa-comments"></i>
+                    <span>Konsultasi</span>
+                </a>
+                <a href="/#petunjuk" class="block px-4 py-3 hover:bg-green-600 rounded-lg transition-all duration-300 mb-2 flex items-center space-x-2">
+                    <i class="fas fa-book"></i>
+                    <span>Petunjuk</span>
+                </a>
+                <a href="/#tentang" class="block px-4 py-3 hover:bg-green-600 rounded-lg transition-all duration-300 flex items-center space-x-2">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Tentang</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div id="overlay" class="overlay"></div>
+
+    <!-- Toggle Button -->
+    <button id="toggle-button" class="toggle-button">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+
+    <div class="flex pt-16">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar shadow-lg">
+            <div class="p-6">
+                <h3 class="text-xl font-semibold mb-4 text-green-600">Panduan Pertanyaan</h3>
+                <div class="space-y-4">
+                    <div class="border-b pb-2">
+                        <h4 class="font-medium text-gray-800 mb-2">Limbah Baterai</h4>
+                        <ul class="text-sm text-gray-600 space-y-1">
+                            <li>• Cara membuang baterai bekas</li>
+                            <li>• Bahaya baterai bekas</li>
+                            <li>• Tempat pembuangan baterai</li>
+                        </ul>
+                    </div>
+                    <div class="border-b pb-2">
+                        <h4 class="font-medium text-gray-800 mb-2">Limbah Elektronik</h4>
+                        <ul class="text-sm text-gray-600 space-y-1">
+                            <li>• Penanganan e-waste</li>
+                            <li>• Daur ulang elektronik</li>
+                            <li>• Tempat pembuangan elektronik</li>
+                        </ul>
+                    </div>
+                    <div class="border-b pb-2">
+                        <h4 class="font-medium text-gray-800 mb-2">Limbah Cat</h4>
+                        <ul class="text-sm text-gray-600 space-y-1">
+                            <li>• Cara membuang sisa cat</li>
+                            <li>• Penanganan kaleng cat</li>
+                            <li>• Bahaya limbah cat</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-800 mb-2">Limbah Lampu</h4>
+                        <ul class="text-sm text-gray-600 space-y-1">
+                            <li>• Penanganan lampu bekas</li>
+                            <li>• Daur ulang lampu</li>
+                            <li>• Bahaya limbah lampu</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main id="main-content" class="flex-1 main-content">
+            <div class="container mx-auto px-4 py-8">
+                <div class="bg-white rounded-lg shadow-lg chat-container">
+                    <!-- Chat Header -->
+                    <div class="bg-green-600 text-white p-4 rounded-t-lg sticky top-0 z-10">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                                <i class="fas fa-robot text-green-600 text-xl"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h2 class="text-xl font-semibold">Asisten Limbah</h2>
+                                <p class="text-sm text-green-100">Online - Siap membantu</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Messages -->
+                    <div class="messages-container bg-green-100" id="messages"></div>
+
+                    <!-- Chat Input -->
+                    <div class="input-container">
+                        <form id="chat-form" class="flex items-center space-x-2">
+                            <input type="text" id="user-input" class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:border-green-600" placeholder="Ketik pertanyaan Anda...">
+                            <button type="submit" class="bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition duration-300 flex items-center justify-center">
+                                <i class="fas fa-paper-plane button-icon"></i>
+                            </button>
+                            <button type="button" id="stt-button" class="bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition duration-300 flex items-center justify-center">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                            <button type="button" id="clear-chat" class="bg-red-500 hover:bg-red-600 text-white px-4 py-3 rounded-lg transition duration-300 flex items-center justify-center">
+                                <i class="fas fa-trash button-icon"></i>
+                            </button>
+                        </form>
+                    </div>
+    <script>
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const mainContent = document.getElementById('main-content');
+        const toggleButton = document.getElementById('toggle-button');
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const messagesContainer = document.getElementById('messages');
+        const clearChatButton = document.getElementById('clear-chat');
+
+        let sidebarVisible = true;
+
+        
+        document.getElementById('mobile-menu-button').addEventListener('click', function () {
+            var menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+            menu.classList.toggle('show');
+        });
+
+        toggleButton.addEventListener('click', () => {
+            if (window.innerWidth >= 768) {
+                sidebar.classList.toggle('hidden');
+                mainContent.classList.toggle('expanded');
+                toggleButton.classList.toggle('active');
+                
+                if (sidebar.classList.contains('hidden')) {
+                    mainContent.style.marginLeft = '0';
+                    toggleButton.style.left = '20px';
+                } else {
+                    mainContent.style.marginLeft = '0';
+                    toggleButton.style.left = '20px';
+                }
+            } else {
+                sidebar.classList.toggle('show');
+                overlay.classList.toggle('show');
+                toggleButton.classList.toggle('active');
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 768) {
+                sidebar.classList.remove('show');
+                overlay.classList.remove('show');
+                
+                if (sidebar.classList.contains('hidden')) {
+                    mainContent.style.marginLeft = '0';
+                    toggleButton.style.left = '20px';
+                } else {
+                    mainContent.style.marginLeft = '0';
+                    toggleButton.style.left = '20px';
+                }
+            } else {
+                sidebar.classList.remove('hidden');
+                mainContent.style.marginLeft = '0';
+                toggleButton.style.left = '20px';
+            }
+        });
+
+     document.addEventListener('DOMContentLoaded', () => {
+    if (window.innerWidth >= 768) {
+        mainContent.style.marginLeft = '0';
+        toggleButton.style.left = '20px';
+    }
+    
+    // Load saved messages and scroll to bottom
+        loadMessages();
+        
+        // If no saved messages, show welcome message and scroll to it
+        if (messagesContainer.children.length === 0) {
+            addMessage('Halo! Saya adalah asisten AI yang akan membantu Anda dalam pengelolaan limbah rumah tangga beracun. Apa yang ingin Anda ketahui?');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    });
+
+        clearChatButton.addEventListener('click', () => {
+        if (confirm('Apakah Anda yakin ingin menghapus semua pesan?')) {
+            messagesContainer.innerHTML = '';
+            sessionStorage.removeItem('chatMessages'); // Menghapus data dari session storage
+            addMessage('Halo! Saya adalah asisten AI yang akan membantu Anda dalam pengelolaan limbah rumah tangga beracun. Apa yang ingin Anda ketahui?');
+        }
+    });
+
+
+        function formatTime() {
+            const now = new Date();
+            return now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        }
+
+chatForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const message = userInput.value.trim();
+    
+    if (message) {
+        addMessage(message, true, null, false); // User messages don't need animation
+        userInput.value = '';
+        
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'flex mb-4';
+        loadingDiv.innerHTML = `
+            <div class="flex-shrink-0 w-8 h-8 mr-2">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23047857'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' /%3E%3C/svg%3E" 
+                     alt="Assistant" class="w-full h-full rounded-full bg-green-100 p-1">
+            </div>
+            <div class="message bg-green-600 text-white p-3 rounded-lg">
+                <div class="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        `;
+        messagesContainer.appendChild(loadingDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        try {
+            const response = await fetch('/konsultasi', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'query': message
+                })
+            });
+
+            const data = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(data, 'text/html');
+            const answer = doc.querySelector('[name="answer"]')?.content || 
+                         "Maaf, terjadi kesalahan dalam memproses pertanyaan Anda.";
+
+            messagesContainer.removeChild(loadingDiv);
+            addMessage(answer, false, null, true); // New bot messages use animation
+
+        } catch (error) {
+            console.error('Error:', error);
+            messagesContainer.removeChild(loadingDiv);
+            addMessage("Maaf, terjadi kesalahan dalam memproses pertanyaan Anda. Silakan coba lagi.", false, null, true);
+        }
+    }
+});
+
+    // Fungsi untuk menyimpan pesan menggunakan sessionStorage
+    function saveMessages() {
+        const messages = [];
+        const messageElements = messagesContainer.children;
+        
+        for (let element of messageElements) {
+            const messageText = element.querySelector('.message-text')?.textContent;
+            const isUser = element.classList.contains('justify-end');
+            const timestamp = element.querySelector('.time-stamp')?.textContent;
+            
+            if (messageText) {
+                messages.push({
+                    text: messageText,
+                    isUser: isUser,
+                    timestamp: timestamp
+                });
+            }
+        }
+        
+        // Menyimpan pesan ke sessionStorage
+        sessionStorage.setItem('chatMessages', JSON.stringify(messages));
+    }
+
+// Fungsi untuk memuat pesan dari sessionStorage
+function loadMessages() {
+    const savedMessages = sessionStorage.getItem('chatMessages');
+    if (savedMessages) {
+        const messages = JSON.parse(savedMessages);
+        messagesContainer.innerHTML = ''; // Menghapus pesan selamat datang default
+        
+        // Memuat semua pesan tanpa animasi
+        for (const message of messages) {
+            addMessage(message.text, message.isUser, message.timestamp, false);
+        }
+        
+        // Scroll ke bagian bawah setelah memuat semua pesan
+        setTimeout(() => {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }, 100);
+    }
+}
+
+async function addMessage(message, isUser = false, timestamp = null, animate = false) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `flex mb-4 ${isUser ? 'justify-end' : ''}`;
+    
+    const currentTime = timestamp || formatTime();
+    const userAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%234B5563'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' /%3E%3C/svg%3E";
+    const assistantAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23047857'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' /%3E%3C/svg%3E";
+
+    messageDiv.innerHTML = `
+        ${!isUser ? `
+            <div class="flex-shrink-0 w-8 h-8 mr-2">
+                <img src="${assistantAvatar}" alt="Assistant" class="w-full h-full rounded-full bg-green-100 p-1">
+            </div>
+        ` : ''}
+        <div class="message ${isUser ? 'bg-gray-100' : 'bg-green-600 text-white'} p-3 rounded-lg relative group">
+            <p class="message-text whitespace-pre-wrap"></p>
+            <div class="flex justify-between items-center mt-1">
+                <span class="time-stamp ${isUser ? 'text-gray-500' : 'text-green-100'} text-xs">${currentTime}</span>
+                ${!isUser ? `
+                    <div class="flex gap-2">
+                        <button class="tts-button w-6 h-6 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-full transition-all duration-200">
+                            <i class="fas fa-volume-up text-white text-sm"></i>
+                        </button>
+                        <button class="copy-button w-6 h-6 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-full transition-all duration-200">
+                            <i class="fas fa-copy text-white text-sm"></i>
+                        </button>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+        ${isUser ? `
+            <div class="flex-shrink-0 w-8 h-8 ml-2">
+                <img src="${userAvatar}" alt="User" class="w-full h-full rounded-full bg-gray-200 p-1">
+            </div>
+        ` : ''}
+    `;
+
+    messagesContainer.appendChild(messageDiv);
+    const textElement = messageDiv.querySelector('.message-text');
+
+    // Format text function to handle asterisks
+    function formatText(text) {
+        return text.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>');
+    }
+
+    // Add copy and TTS functionality for bot messages
+    if (!isUser) {
+        const copyButton = messageDiv.querySelector('.copy-button');
+        if (copyButton) {
+            copyButton.addEventListener('click', async () => {
+                try {
+                    // Remove HTML tags for copying
+                    const plainText = message.replace(/\*\*/g, '');
+                    await navigator.clipboard.writeText(plainText);
+                    const originalIcon = copyButton.innerHTML;
+                    copyButton.innerHTML = '<i class="fas fa-check text-white text-sm"></i>';
+                    setTimeout(() => {
+                        copyButton.innerHTML = originalIcon;
+                    }, 2000);
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                    alert('Gagal menyalin teks. Silakan coba lagi.');
+                }
+            });
+        }
+
+        // TTS button functionality
+        const ttsButton = messageDiv.querySelector('.tts-button');
+        if (ttsButton) {
+            let isPlaying = false;
+            let utterance = null;
+
+            ttsButton.addEventListener('click', () => {
+                if (isPlaying) {
+                    window.speechSynthesis.cancel();
+                    ttsButton.innerHTML = '<i class="fas fa-volume-up text-white text-sm"></i>';
+                    isPlaying = false;
+                } else {
+                    // Remove HTML tags and asterisks for TTS
+                    const plainText = message.replace(/\*\*/g, '');
+                    utterance = new SpeechSynthesisUtterance(plainText);
+                    utterance.lang = 'id-ID';
+                    utterance.rate = 1.0;
+                    
+                    ttsButton.innerHTML = '<i class="fas fa-volume-mute text-white text-sm"></i>';
+                    isPlaying = true;
+
+                    utterance.onend = () => {
+                        ttsButton.innerHTML = '<i class="fas fa-volume-up text-white text-sm"></i>';
+                        isPlaying = false;
+                    };
+
+                    window.speechSynthesis.speak(utterance);
+                }
+            });
+        }
+    }
+
+    // Handle text display (animated or instant)
+    if (!isUser && animate) {
+        const formattedText = formatText(message);
+        const words = formattedText.split(' ');
+        for (let i = 0; i < words.length; i++) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+            textElement.innerHTML = words.slice(0, i + 1).join(' ');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    } else {
+        textElement.innerHTML = formatText(message);
+    }
+    
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    saveMessages();
+}
+
+//STT BUTTON
+const sttButton = document.getElementById('stt-button');
+let recognition;
+let isRecording = false;
+
+// Check if browser supports speech recognition
+if ('webkitSpeechRecognition' in window) {
+    recognition = new webkitSpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'id-ID';
+
+    recognition.onstart = () => {
+        isRecording = true;
+        sttButton.innerHTML = '<i class="fas fa-stop"></i>';
+        sttButton.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+        sttButton.classList.add('bg-red-500', 'hover:bg-red-600');
+        userInput.placeholder = 'Mendengarkan...';
+    };
+
+    recognition.onend = () => {
+        isRecording = false;
+        sttButton.innerHTML = '<i class="fas fa-microphone"></i>';
+        sttButton.classList.remove('bg-red-500', 'hover:bg-red-600');
+        sttButton.classList.add('bg-blue-500', 'hover:bg-blue-600');
+        userInput.placeholder = 'Ketik pertanyaan Anda...';
+    };
+
+    recognition.onresult = (event) => {
+        const result = event.results[event.results.length - 1];
+        const transcript = result[0].transcript;
+        
+        if (result.isFinal) {
+            userInput.value = transcript;
+        } else {
+            userInput.value = transcript;
+        }
+    };
+
+    recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        isRecording = false;
+        recognition.stop();
+        sttButton.innerHTML = '<i class="fas fa-microphone"></i>';
+        sttButton.classList.remove('bg-red-500', 'hover:bg-red-600');
+        sttButton.classList.add('bg-blue-500', 'hover:bg-blue-600');
+        
+        if (event.error === 'not-allowed') {
+            alert('Mohon izinkan akses mikrofon untuk menggunakan fitur ini.');
+        }
+    };
+
+    sttButton.addEventListener('click', () => {
+        if (isRecording) {
+            recognition.stop();
+        } else {
+            userInput.value = ''; // Clear previous input
+            recognition.start();
+        }
+    });
+} else {
+    sttButton.style.display = 'none';
+    console.warn('Browser tidak mendukung Speech Recognition');
+}
+
+        const mediaQuery = window.matchMedia('(min-width: 768px)');
+        function handleScreenChange(e) {
+            if (!e.matches) {
+                sidebar.classList.remove('show');
+                overlay.classList.remove('show');
+                mainContent.classList.remove('expanded');
+                toggleButton.classList.remove('active');
+            }
+        }
+        mediaQuery.addListener(handleScreenChange);
+    </script>
+</body>
+</html>
